@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Remote LED Control</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+  <h2>LED Controller 🔴🟢</h2>
+  <div id="authDiv">
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="signup()">Sign Up</button>
+    <button onclick="login()">Login</button>
+    <p id="authMessage" style="color:red;"></p>
+  </div>
+  <div id="ledDiv" style="display:none;">
+    <p id="userEmail"></p>
+    <button onclick="setLED('ON')">Turn ON LED</button>
+    <button onclick="setLED('OFF')">Turn OFF LED</button>
+    <p>Current LED state: <span id="ledState">Unknown</span></p>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDnBOS-LQqngwOZ2JQ5rAZXbf_O-X6DAAo",
+      authDomain: "esp32-68d42.firebaseapp.com",
+      databaseURL: "https://esp32-68d42-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "esp32-68d42",
+      storageBucket: "esp32-68d42.appspot.com",
+      messagingSenderId: "196807854797",
+      appId: "1:196807854797:web:9cd19a31a8cf0e593cb784"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    const authDiv = document.getElementById("authDiv");
+    const ledDiv = document.getElementById("ledDiv");
+    const authMessage = document.getElementById("authMessage");
+    const userEmailP = document.getElementById("userEmail");
+    const ledStateSpan = document.getElementById("ledState");
+
+    function signup() {
+      authMessage.textContent = "";
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(() => {
+          authMessage.style.color = "green";
+          authMessage.textContent = "User created. Please log in.";
+        })
+        .catch(error => {
+          authMessage.style.color = "red";
+          authMessage.textContent = error.message;
+        });
+    }
+
+    function login() {
+      authMessage.textContent = "";
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, password)
+        .catch(error => {
+          authMessage.style.color = "red";
+          authMessage.textContent = error.message;
+        });
+    }
+
+    function logout() {
+      auth.signOut();
+    }
+
+    function setLED(state) {
+      db.ref("LED/state").set(state)
+        .catch(error => {
+          alert("Failed to set LED state: " + error.message);
+        });
+    }
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        authDiv.style.display = "none";
+        ledDiv.style.display = "block";
+        userEmailP.textContent = `Logged in as: ${user.email}`;
+        db.ref("LED/state").on("value", snapshot => {
+          const state = snapshot.val();
+          ledStateSpan.textContent = state ? state : "Unknown";
+        });
+      } else {
+        authDiv.style.display = "block";
+        ledDiv.style.display = "none";
+        userEmailP.textContent = "";
+        ledStateSpan.textContent = "Unknown";
+      }
+      authMessage.textContent = "";
+    });
+  </script>
+</body>
+</html>
